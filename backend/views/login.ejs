@@ -64,10 +64,6 @@
                 Login
                 </button>
               </form>
-
-              <a href="/auth/forgot" class="forgot-password-link"
-                >Forgot password?</a
-              >
               <p class="login-wrapper-footer-text">
                 Don't have an account?
                 <a href="/auth/register" class="text-reset"
@@ -77,7 +73,7 @@
             </div>
           </div>
           <div class="col-sm-6 px-0 d-none d-sm-block">
-            <img src="/images/login.jpg" alt="login image" class="login-img" />
+            <img src="/img/login.jpg" alt="login image" class="login-img" />
           </div>
         </div>
       </div>
@@ -105,9 +101,12 @@
 
           const json = await response.json();
           
-          // alert(json);
-          if(json=="success"){
-            window.location.replace("http://localhost:3000/notes/textNotes");
+          if(json.success==true){
+            window.location.replace("http://localhost:3000/user/upload");
+          }
+          else{
+            alert("Invalid email or password!")
+            location.reload();
           }
 
         } catch (error) {

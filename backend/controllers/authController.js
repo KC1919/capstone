@@ -64,6 +64,8 @@ export const login = async (req, res) => {
                         maxAge: 86400
                     })
 
+                // console.log("reacched");
+
                 res.status(200).json({
                     message: "User logged in successfully",
                     success: true

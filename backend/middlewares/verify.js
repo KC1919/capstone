@@ -5,11 +5,15 @@ import jwt from 'jsonwebtoken'
     try {
         const token = await req.cookies['secret'];
 
-        const payload = jwt.verify(token, process.env.SECRET_KEY);
+        if(token==undefined){
+            res.redirect("/auth/login");
+        }
 
-        req.user = payload.user;
-
-        next();
+        else{
+            const payload = jwt.verify(token, process.env.SECRET_KEY);
+            req.user = payload.user;
+            next();
+        }
 
     } catch (error) {
         res.status(500).json({

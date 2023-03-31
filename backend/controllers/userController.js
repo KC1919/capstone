@@ -1,7 +1,11 @@
-
 // const CryptoJS = require("crypto-js");
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import User from '../models/userModel.js'
+import {
+    conceal,
+    reveal
+} from 'steganojs';
 
 import fs from 'fs';
 
@@ -16,37 +20,40 @@ export const getOTP = async (req, res) => {
             }
         });
 
-        const otp = crypto.randomInt(0, 1000000).toString().padStart(6, "0");
+        const otp = crypto.randomInt(0, 1000000).toString();
 
-        console.log(otp);
+        // console.log(otp);
 
-        let data = fs.readFileSync('public/img/sample2.png', 'base64');
+        let data = fs.readFileSync('public/img/sample2.png');
 
-        let newData = data.split("");
-        let otpData = otp.split("");
+        // console.log(data);
 
-        // console.log(newData);
+        const encodedFile = conceal(
+            data,
+            otp,
+        );
 
-        for (let i = 0; i < otpData.length; i++) {
-            newData[otpData[i]] >> 1;
-        }
+        let encodedString = encodedFile.toString('base64');
 
-        const cipher = newData.join("");
+        await User.updateOne({
+            "email": req.user
+        }, {
+            "otp": otp,
+            "encoded": encodedString
+        })
 
-        // const buffer = Buffer.from(cipher, "base64");
-        // console.log(buffer);
+        // fs.writeFileSync("public/img/otp.png", encodedFile);
 
-        // fs.writeFileSync("public/img/otp.png", buffer);
-
+        // console.log(req.user);
         // setup email data with unicode symbols
         let mailOptions = {
             from: `${process.env.EMAIL}`, // sender address 
-            to: 'kunal.chandra1900@gmail.com', // members of the meeting
+            to: `${req.user}`, // receiver email address
             subject: 'OTP', // Subject line
             text: "You've got an OTP",
             attachments: [{
                 filename: 'otp.png',
-                content: new Buffer(cipher, "base64")
+                content: Buffer.from(encodedFile, "base64")
             }],
         };
 
@@ -62,6 +69,62 @@ export const getOTP = async (req, res) => {
 
     } catch (error) {
         console.log(error);
+    }
+}
+
+export const uploadOTP = async (req, res) => {
+    try {
+
+        const buffer = req.files.image.data;
+
+        const data = buffer.toString("base64");
+
+        const otp = reveal(
+            buffer
+            /*, optional Buffer Encoding
+            , optional AES256 encryption password */
+        ).toString();
+
+        console.log(otp);
+
+
+        const user = await User.findOne({
+            "email": req.user
+        }, {
+            "_id": 0,
+            "otp": 1,
+            "encoded": 1
+        })
+
+        if (user.otp === otp && data === user.encoded) {
+
+            await User.findOneAndUpdate({
+                "email": req.user
+            }, {
+                $set: {
+                    "otp": "",
+                    "encoded": ""
+                }
+            }, {
+                new: true
+            });
+            
+            res.status(200).json({
+                "message": "OTP Verified Successfully",
+                "success": true
+            })
+        } else {
+            res.status(200).json({
+                "message": "OTP Verification Failed",
+                "success": true
+            })
+        }
+    } catch (error) {
+        res.status(500).json({
+            "message": "OTP Verification Failed, server error",
+            "success": false,
+            "error":error.message
+        })
     }
 }
 
